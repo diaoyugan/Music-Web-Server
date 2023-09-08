@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Music Player</title>
+</head>
+<body>
+    <h1>Music Player</h1>
+    <audio controls id="music-player">
+        <source id="music-source" type="audio/mpeg">
+        Your browser does not support the audio element.
+    </audio>
+    <script>
+        // 获取 URL 中的参数
+        function getParameterByName(name, url) {
+            if (!url) url = window.location.href;
+            name = name.replace(/[\[\]]/g, '\\$&');
+            var regex = new RegExp('[?&]' + name + '(=([^&#]*)|&|#|$)'),
+                results = regex.exec(url);
+            if (!results) return null;
+            if (!results[2]) return '';
+            return decodeURIComponent(results[2].replace(/\+/g, ' '));
+        }
+
+        // 在页面加载时，检查 URL 参数并自动播放音乐
+        window.onload = function () {
+            var songName = getParameterByName('song');
+            if (songName) {
+                var audioPlayer = document.getElementById('music-player');
+                var audioSource = document.getElementById('music-source');
+
+                // 根据 URL 参数设置音乐源 URL
+                audioSource.src = 'http://localhost:8080/music/' + songName;
+
+                // 重新加载音乐播放器以开始播放新音乐
+                audioPlayer.load();
+            }
+        }
+    </script>
+</body>
+</html>
