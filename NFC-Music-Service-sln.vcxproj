@@ -19,9 +19,11 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="CommandHandler..cpp" />
     <ClCompile Include="NFC-Music-Service.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="CommandHandler.h" />
     <ClInclude Include="NFCMS_include.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">

@@ -1,4 +1,5 @@
 ﻿#include "NFCMS_include.h"
+#include "CommandHandler.h"
 
 using namespace web;
 using namespace web::http;
@@ -67,46 +68,57 @@ int main() {
     // 加载音乐映射表
     loadMusicMap();
 
-    // 创建音乐文件服务监听器
-    http_listener music_listener(L"http://localhost:8080");
-    music_listener.support(methods::GET, [=](http_request request) {
-        auto track = uri::decode(request.relative_uri().to_string());
+    // 创建一个新线程来监听连接请求
+    std::thread musicThread([]() {
+        http_listener music_listener(L"http://localhost:8080");
+        music_listener.support(methods::GET, [=](http_request request) {
+            auto track = uri::decode(request.relative_uri().to_string());
 
-        if (track.find(L"/music/") == 0) {
-            std::wstring musicName = track.substr(7);
-            std::string filePath = findMusicMapping(musicName);
+            if (track.find(L"/music/") == 0) {
+                std::wstring musicName = track.substr(7);
+                std::string filePath = findMusicMapping(musicName);
 
-            if (!filePath.empty()) {
-                try {
-                    std::ifstream musicFile(filePath, std::ios::binary);
-                    if (musicFile) {
-                        http_response response(status_codes::OK);
-                        response.headers().set_content_type(L"audio/mpeg");
+                if (!filePath.empty()) {
+                    try {
+                        std::ifstream musicFile(filePath, std::ios::binary);
+                        if (musicFile) {
+                            http_response response(status_codes::OK);
+                            response.headers().set_content_type(L"audio/mpeg");
 
-                        std::ostringstream responseStream;
-                        responseStream << musicFile.rdbuf();
-                        auto responseString = responseStream.str();
+                            std::ostringstream responseStream;
+                            responseStream << musicFile.rdbuf();
+                            auto responseString = responseStream.str();
 
-                        response.set_body(responseString);
-                        request.reply(response);
-                        std::cout << "Request URL: " << utility::conversions::to_utf8string(request.request_uri().to_string()) << std::endl;
-                        musicFile.close();
+                            response.set_body(responseString);
+                            request.reply(response);
+                            std::cout << "Request URL: " << utility::conversions::to_utf8string(request.request_uri().to_string()) << std::endl;
+                            musicFile.close();
+                        }
+                        else {
+                            request.reply(status_codes::InternalError, L"Internal Server Error");
+                        }
                     }
-                    else {
+                    catch (const std::exception& e) {
+                        std::cerr << "Error: " << e.what() << std::endl;
                         request.reply(status_codes::InternalError, L"Internal Server Error");
                     }
                 }
-                catch (const std::exception& e) {
-                    std::cerr << "Error: " << e.what() << std::endl;
-                    request.reply(status_codes::InternalError, L"Internal Server Error");
+                else {
+                    request.reply(status_codes::NotFound, L"Music Not Found");
                 }
             }
             else {
-                request.reply(status_codes::NotFound, L"Music Not Found");
+                request.reply(status_codes::NotFound, L"Invalid URL Format");
             }
+            });
+
+        try {
+            music_listener.open().wait();
+            std::wcout << L"Music service listening for requests at: " << music_listener.uri().to_string() << std::endl;
+            while (true);
         }
-        else {
-            request.reply(status_codes::NotFound, L"Invalid URL Format");
+        catch (const std::exception& e) {
+            std::wcerr << L"Error: " << e.what() << std::endl;
         }
         });
 
@@ -132,11 +144,14 @@ int main() {
         });
 
     try {
-        music_listener.open().wait();
         html_listener.open().wait();
-        std::wcout << L"Music service listening for requests at: " << music_listener.uri().to_string() << std::endl;
         std::wcout << L"HTML service listening for requests at: " << html_listener.uri().to_string() << std::endl;
-        while (true);
+
+        // 主线程用于处理命令
+        startHandleReloadCommand(musicMapFile);
+
+        // 当命令处理完成后，等待音乐服务线程结束
+        musicThread.join();
     }
     catch (const std::exception& e) {
         std::wcerr << L"Error: " << e.what() << std::endl;

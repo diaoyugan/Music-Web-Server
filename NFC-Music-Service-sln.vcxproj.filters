@@ -18,9 +18,15 @@
     <ClCompile Include="NFC-Music-Service.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
+    <ClCompile Include="CommandHandler..cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="NFCMS_include.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="CommandHandler.h">
       <Filter>头文件</Filter>
     </ClInclude>
   </ItemGroup>
